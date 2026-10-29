@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build and test outputs
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# runtime files
+*.log
+*.pid
+
+# local references and design captures
+attachments/
+image.png
+screenshots/
+
+# platform/runtime context
+.agent_context/
+AGENTS.md
+
+# OS files
+.DS_Store
