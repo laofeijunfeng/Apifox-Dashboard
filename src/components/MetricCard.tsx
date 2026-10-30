@@ -17,7 +17,6 @@ import {
   ShieldCheck,
   TestTube2,
   UserCheck,
-  UserMinus,
   Users,
   Workflow
 } from 'lucide-react';
@@ -43,7 +42,6 @@ const ICONS: Record<string, LucideIcon> = {
   managed_projects: Building2,
   license_usage: KeyRound,
   dormant_accounts: Moon,
-  idle_reclaim_rate: UserMinus,
   active_teams: Activity,
   active_projects: FolderCheck,
   active_users: UserCheck
@@ -115,7 +113,6 @@ const METRIC_TONES: Record<string, Tone> = {
   managed_projects: 'blue',
   license_usage: 'blue',
   dormant_accounts: 'amber',
-  idle_reclaim_rate: 'rose',
   active_teams: 'emerald',
   active_projects: 'emerald',
   active_users: 'emerald'

@@ -17,7 +17,6 @@ export interface DashboardMeta {
   generatedAt: string;
   timeZone: string;
   database: string;
-  dashboardDatabase: string;
   readOnly: boolean;
   range: {
     startDate: string;
@@ -50,7 +49,6 @@ export interface DashboardSummary {
   activeTeams: number;
   activeProjects: number;
   activeUsers: number;
-  reclaimedAccounts: number;
 }
 
 export interface CoverageMetric {
@@ -96,8 +94,6 @@ export interface TeamRow {
   licenseCount: number;
   dormantAccounts: number;
   activeUsers: number;
-  reclaimedAccounts: number;
-  idleReclaimRate: number | null;
   activeProjects: number;
   apiTotal: number;
   singleCaseTotal: number;

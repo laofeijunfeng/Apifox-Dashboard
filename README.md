@@ -5,7 +5,7 @@
 ## 已实现功能
 
 - 周期筛选：近 7 / 30 / 90 天，以及最长 366 天的自定义日期范围。
-- 19 项指标：测试相关 11 项、运维运营 8 项；比例指标同时返回分子和分母。
+- 18 项指标：测试相关 11 项、运维运营 7 项；比例指标同时返回分子和分母。
 - 指标口径：每张指标卡带 Tooltip，并提供完整的指标口径字典。
 - 数据分析：执行趋势、接口覆盖率、团队 License 与沉睡账号分布、项目/团队明细。
 - 明细操作：搜索、周期活跃筛选、测试资产使用筛选、CSV 导出。
@@ -71,25 +71,13 @@ git push
 
 ## 数据库准备
 
-### 1. 创建补充数据表
-
-```bash
-mysql -h 127.0.0.1 -P 3308 -u <管理员账号> -p < db/schema.sql
-```
-
-`db/schema.sql` 只创建独立的 `apifox_dashboard` 库和 `seat_reclaims` 表，不修改 `apifox` 业务库。
-
-### 2. 创建只读账号
-
-以下 SQL 为示例，请替换主机范围、账号和强密码。只授予应用实际需要的 `SELECT` 权限：
+应用只读取现有 Apifox 业务库，不创建、不修改、不删除任何表。创建只读账号时只授予 `apifox` 库的 `SELECT`：
 
 ```sql
 CREATE USER 'apifox_dashboard_ro'@'127.0.0.1'
   IDENTIFIED BY '<强密码>';
 
 GRANT SELECT ON apifox.* TO 'apifox_dashboard_ro'@'127.0.0.1';
-GRANT SELECT ON apifox_dashboard.seat_reclaims
-  TO 'apifox_dashboard_ro'@'127.0.0.1';
 
 FLUSH PRIVILEGES;
 ```
@@ -103,7 +91,6 @@ DB_PORT=3308
 DB_USER=apifox_dashboard_ro
 DB_PASSWORD=<强密码>
 DB_NAME=apifox
-DASHBOARD_DB_NAME=apifox_dashboard
 APP_TIME_ZONE=Asia/Shanghai
 ```
 
@@ -111,7 +98,7 @@ APP_TIME_ZONE=Asia/Shanghai
 
 - `.env` 已加入 `.gitignore`，不要提交或写入前端代码。
 - 服务启动时会拒绝 `DB_USER=root`。
-- 应用只执行查询；`seat_reclaims` 的写入应由受控运营流程完成。
+- 应用只执行查询，不提供写 Apifox 业务表的接口。
 
 ## 指标口径
 
@@ -135,7 +122,7 @@ APP_TIME_ZONE=Asia/Shanghai
 
 套件/场景报告通过判定：仅统计 `api_test_reports.status=done` 的报告；报告 `stats` 中 `failed`、`pending` 均为 0，且存在有效统计计数时，才视为“完全通过”。
 
-### 运维运营（8 项）
+### 运维运营（7 项）
 
 | 指标 | 口径 |
 | --- | --- |
@@ -143,12 +130,9 @@ APP_TIME_ZONE=Asia/Shanghai
 | 纳管项目总数 | 当前未删除且所属团队有效的项目数。 |
 | License 使用数 | 有效团队中状态正常成员席位覆盖的不同有效用户数；跨团队重复账号只计 1 次。 |
 | ≥90 天沉睡账号 | 有效席位账号最近可用活动时间早于或等于当前时间减 90 天。最近活动取团队最后活跃、账号访问、加入及创建时间中的最新可用值。 |
-| 闲置账号回收率 | **待业务确认的近似口径**：周期内记录过回收事件的不同账号数 ÷（周期内回收账号 ∪ 当前 ≥90 天沉睡账号）。 |
 | 活跃团队数 | 所选周期内存在活跃成员或活跃项目的团队数。 |
 | 活跃项目数 | 所选周期内接口、单接口用例、场景、套件或已完成测试报告有更新的项目数。 |
 | 活跃用户数 | 所选周期内有最近活动时间的不同有效席位用户数。 |
-
-闲置账号回收事件来自独立表 `apifox_dashboard.seat_reclaims`，应用只读取、不写入。该指标当前状态为“待确认”；在业务确认正式分母和事件来源前，不应作为正式考核口径。
 
 ## 空库行为
 
@@ -191,7 +175,6 @@ curl -I 'http://127.0.0.1:8787/api/export.csv?days=30'
 ```text
 src/                      React 页面、组件、类型与格式化工具
 server/                   Express API、聚合服务、只读数据访问层
-db/schema.sql             独立运营数据表
 tests/                    Node.js 内置测试
 dist/                     生产构建产物（npm run build 生成）
 ```
@@ -200,5 +183,4 @@ dist/                     生产构建产物（npm run build 生成）
 
 - 当前版本固定使用 `Asia/Shanghai`；其他时区启动时会拒绝运行。
 - 指标基于本地 Apifox 库现有表结构，Apifox 版本升级后需要复核字段映射。
-- 闲置账号回收率的正式口径仍待业务确认。
 - 前端构建目前为单个约 700 KB 的 JS chunk，不影响功能；后续可按图表/弹窗做手动拆包。

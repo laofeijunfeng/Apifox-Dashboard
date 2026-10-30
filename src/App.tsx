@@ -171,7 +171,7 @@ export default function App() {
                 id="operations-metrics"
                 eyebrow="Operations & Adoption"
                 title="运维运营指标"
-                description="聚焦组织纳管范围、License 使用、账号沉睡与回收，以及团队、项目和成员在所选周期内的真实活跃情况。"
+                description="聚焦组织纳管范围、License 使用、账号沉睡，以及团队、项目和成员在所选周期内的真实活跃情况。"
                 metrics={data.metrics.operations}
                 contexts={operationsContexts}
                 accent="emerald"
@@ -238,7 +238,7 @@ export default function App() {
                   </p>
                 </div>
                 <p className="max-w-2xl sm:text-right">
-                  所有统计均过滤软删除记录；日期区间按上海时区左闭右开计算。闲置账号回收率依赖独立回收事件表，口径待业务确认。
+                  所有统计均过滤软删除记录；日期区间按上海时区左闭右开计算。
                 </p>
               </footer>
             </>

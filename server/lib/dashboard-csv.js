@@ -66,7 +66,6 @@ export function buildDashboardCsv(dashboard) {
     '套件运行次数',
     '套件通过次数',
     '套件通过率',
-    '周期回收账号',
     '周期活跃'
   ]);
   for (const team of dashboard.teams) {
@@ -89,7 +88,6 @@ export function buildDashboardCsv(dashboard) {
       team.suiteRuns,
       team.suitePassedRuns,
       team.suitePassRate === null ? '—' : `${team.suitePassRate}%`,
-      team.reclaimedAccounts,
       team.activeInPeriod ? '是' : '否'
     ]);
   }

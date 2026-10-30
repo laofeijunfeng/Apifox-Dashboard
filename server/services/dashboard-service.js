@@ -137,17 +137,6 @@ export class DashboardService {
     const reuseWindow = resolveReuseWindow(now, 90, config.timeZone);
     const dormantThreshold = new Date(now.getTime() - DORMANT_DAYS * DAY_MS);
 
-    let seatReclaims = [];
-    let reclaimsAvailable = true;
-    let reclaimsError = null;
-    const reclaimsPromise = this.repository
-      .getSeatReclaimsInRange(range.startDb, range.endDb)
-      .catch((error) => {
-        reclaimsAvailable = false;
-        reclaimsError = error.message;
-        return [];
-      });
-
     const [
       teams,
       projects,
@@ -160,8 +149,7 @@ export class DashboardService {
       suiteRows,
       licenseMembers,
       reportRows,
-      reuseReportRows,
-      reclaimRows
+      reuseReportRows
     ] = await Promise.all([
       this.repository.listTeams(),
       this.repository.listProjects(),
@@ -177,10 +165,8 @@ export class DashboardService {
       this.repository.getSuccessfulSuiteReportsInRange(
         reuseWindow.startDb,
         reuseWindow.endDb
-      ),
-      reclaimsPromise
+      )
     ]);
-    seatReclaims = reclaimRows;
 
     const teamById = new Map(teams.map((team) => [Number(team.id), team]));
     const projectById = new Map(
@@ -325,19 +311,6 @@ export class DashboardService {
       if (within(activity, range.startUtc, range.endUtc)) activeUserIds.add(userId);
     }
 
-    const reclaimUserIds = new Set();
-    const reclaimUserIdsByTeam = new Map();
-    for (const row of seatReclaims) {
-      const userId = Number(row.user_id);
-      const teamId = Number(row.team_id);
-      if (!userId) continue;
-      reclaimUserIds.add(userId);
-      if (teamId) {
-        const set = getOrCreate(reclaimUserIdsByTeam, teamId, () => new Set());
-        set.add(userId);
-      }
-    }
-
     const activeProjectIds = new Set();
     for (const [projectId, project] of projectById) {
       const lastActivity = parseDbUtc(project.stats.lastActivity);
@@ -400,8 +373,6 @@ export class DashboardService {
       const teamDormantIds = [...members.entries()]
         .filter(([, activity]) => activity <= dormantThreshold)
         .map(([userId]) => userId);
-      const teamReclaimedIds = reclaimUserIdsByTeam.get(teamId) ?? new Set();
-      const reclaimCandidates = new Set([...teamDormantIds, ...teamReclaimedIds]);
       const teamApiTotal = teamProjects.reduce((sum, project) => sum + project.apiTotal, 0);
       const teamSingleCovered = teamProjects.reduce(
         (sum, project) => sum + project.singleCaseCoveredApis,
@@ -439,10 +410,6 @@ export class DashboardService {
         licenseCount: members.size,
         dormantAccounts: teamDormantIds.length,
         activeUsers: new Set(teamActiveUserIds).size,
-        reclaimedAccounts: teamReclaimedIds.size,
-        idleReclaimRate: reclaimsAvailable
-          ? percent(teamReclaimedIds.size, reclaimCandidates.size)
-          : null,
         activeProjects: teamProjects.filter((project) => project.activeInPeriod).length,
         apiTotal: teamApiTotal,
         singleCaseTotal: teamProjects.reduce(
@@ -488,23 +455,6 @@ export class DashboardService {
     const scenarioCoverageTotal = toCount(scenarioCoverageTotalRows[0]?.covered_apis);
     const usedProjects = projectRows.filter((project) => project.usedForTesting);
     const dormantCount = dormantUserIds.size;
-    const reclaimCandidates = new Set([...dormantUserIds, ...reclaimUserIds]);
-
-    const idleReclaimMetric = rateMetric(
-      'idle_reclaim_rate',
-      '闲置账号回收率',
-      reclaimUserIds.size,
-      reclaimCandidates.size,
-      {
-        availability: reclaimsAvailable ? 'available' : 'unavailable',
-        status: 'pending-confirmation',
-        description:
-          '近似口径：统计周期内记录过回收事件的不同账号数 ÷（周期内回收账号 ∪ 当前 ≥90 天沉睡账号）。需结合独立回收事件表使用。',
-        note: reclaimsAvailable
-          ? '口径待业务确认；回收事件来自 apifox_dashboard.seat_reclaims，不由应用写入。'
-          : `回收事件表暂不可用：${reclaimsError ?? '未知原因'}`
-      }
-    );
 
     const testingMetrics = [
       countMetric('api_total', '接口总数', apiTotal, {
@@ -601,7 +551,6 @@ export class DashboardService {
         description:
           '有效席位账号最近可用活动时间早于或等于当前时间减 90 天；取团队最后活跃、账号访问、加入及创建时间中的最新可用值。'
       }),
-      idleReclaimMetric,
       countMetric('active_teams', '活跃团队数', activeTeamIds.size, {
         description: '所选周期内存在活跃成员或活跃项目的团队数。',
         note: range.label
@@ -633,14 +582,6 @@ export class DashboardService {
         message: 'Apifox 业务库当前没有可统计的有效数据，存量指标为 0，比例指标显示为 —。'
       });
     }
-    if (!reclaimsAvailable) {
-      warnings.push({
-        code: 'seat-reclaims-unavailable',
-        level: 'warning',
-        message:
-          '独立回收事件表不可读，闲置账号回收率暂不可计算；请执行 db/schema.sql 并检查只读授权。'
-      });
-    }
 
     const trend = buildTrend(range.startDate, range.endDate, dailyMap);
     const licenseByTeam = teamRows.map((team) => ({
@@ -656,7 +597,6 @@ export class DashboardService {
         generatedAt: now.toISOString(),
         timeZone: config.timeZone,
         database: config.db.database,
-        dashboardDatabase: config.db.dashboardDatabase,
         readOnly: true,
         range: {
           startDate: range.startDate,
@@ -692,8 +632,7 @@ export class DashboardService {
         dormantAccounts: dormantCount,
         activeTeams: activeTeamIds.size,
         activeProjects: activeProjectIds.size,
-        activeUsers: activeUserIds.size,
-        reclaimedAccounts: reclaimUserIds.size
+        activeUsers: activeUserIds.size
       },
       charts: {
         coverage: {

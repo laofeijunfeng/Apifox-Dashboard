@@ -191,15 +191,4 @@ export class DashboardRepository {
       ORDER BY r.created_at ASC, r.id ASC
     `, [startDb, endDb]);
   }
-
-  async getSeatReclaimsInRange(startDb, endDb) {
-    return query(`
-      SELECT id, team_id, user_id, reclaimed_at, reason, operator_name
-      FROM \`${process.env.DASHBOARD_DB_NAME || 'apifox_dashboard'}\`.seat_reclaims
-      WHERE deleted_at IS NULL
-        AND reclaimed_at >= ?
-        AND reclaimed_at < ?
-      ORDER BY reclaimed_at ASC, id ASC
-    `, [startDb, endDb]);
-  }
 }

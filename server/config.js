@@ -20,8 +20,7 @@ export const config = {
     port: numberFromEnv('DB_PORT', 3308),
     user: dbUser,
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'apifox',
-    dashboardDatabase: process.env.DASHBOARD_DB_NAME || 'apifox_dashboard'
+    database: process.env.DB_NAME || 'apifox'
   }
 };
 

@@ -6,7 +6,6 @@ process.env.DB_PASSWORD = 'dashboard_test_password';
 process.env.DB_HOST = '127.0.0.1';
 process.env.DB_PORT = '3308';
 process.env.DB_NAME = 'apifox';
-process.env.DASHBOARD_DB_NAME = 'apifox_dashboard';
 process.env.APP_TIME_ZONE = 'Asia/Shanghai';
 
 const { DashboardService } = await import('../server/services/dashboard-service.js');
@@ -25,7 +24,6 @@ function createRepository(overrides = {}) {
     listLicenseMembers: async () => [],
     getCompletedReportsInRange: async () => [],
     getSuccessfulSuiteReportsInRange: async () => [],
-    getSeatReclaimsInRange: async () => [],
     ...overrides
   };
 }
@@ -43,7 +41,6 @@ test('空业务库返回 0 计数、空比例和明确空库提示', async () =>
   assert.equal(metrics.get('single_case_total').value, 0);
   assert.equal(metrics.get('single_case_coverage').value, null);
   assert.equal(metrics.get('project_usage_rate').value, null);
-  assert.equal(metrics.get('idle_reclaim_rate').value, null);
   assert.equal(dashboard.summary.projectTotal, 0);
   assert.equal(dashboard.teams.length, 0);
   assert.equal(dashboard.projects.length, 0);
@@ -154,16 +151,6 @@ test('混合样例按去重接口和已完成报告真实聚合', async () => {
         stats: failure,
         created_at: '2026-10-27 02:00:00'
       }
-    ],
-    getSeatReclaimsInRange: async () => [
-      {
-        id: 1,
-        team_id: 1,
-        user_id: 1002,
-        reclaimed_at: '2026-10-27 00:00:00',
-        reason: '长期未登录',
-        operator_name: 'ops'
-      }
     ]
   });
 
@@ -187,7 +174,6 @@ test('混合样例按去重接口和已完成报告真实聚合', async () => {
   assert.equal(metrics.get('license_usage').value, 2);
   assert.equal(metrics.get('dormant_accounts').value, 1);
   assert.equal(metrics.get('active_users').value, 1);
-  assert.equal(metrics.get('idle_reclaim_rate').value, 100);
 
   assert.equal(dashboard.summary.suiteTotal, 4);
   assert.equal(dashboard.summary.usedProjects, 1);
